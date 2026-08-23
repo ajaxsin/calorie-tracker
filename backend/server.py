@@ -1,8 +1,11 @@
 from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import io
+import csv
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
@@ -63,6 +66,20 @@ class SettingsInput(BaseModel):
 class ActivityInput(BaseModel):
     date: str
     steps: int = Field(ge=0, le=200000)
+
+class PresetCreate(BaseModel):
+    name: Optional[str] = None
+    meal_text: str = Field(min_length=3, max_length=2000)
+    calories: float = Field(ge=0)
+    protein: float = Field(ge=0)
+    carbs: float = Field(ge=0)
+    fibre: float = Field(ge=0)
+    fats: float = Field(ge=0)
+    confidence: Optional[float] = None
+
+class PresetLog(BaseModel):
+    date: str
+    segment: str
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
@@ -134,6 +151,75 @@ async def update_activity(input: ActivityInput):
     activity = {**input.model_dump(), "updated_at": datetime.now(timezone.utc).isoformat()}
     await db.activity.replace_one({"date": input.date}, activity, upsert=True)
     return {"date": input.date, "steps": input.steps}
+
+@api_router.get("/presets")
+async def list_presets():
+    return await db.presets.find({}, {"_id": 0}).sort([("use_count", -1), ("created_at", -1)]).to_list(500)
+
+@api_router.post("/presets")
+async def create_preset(input: PresetCreate):
+    doc = {"id": str(uuid.uuid4()), **input.model_dump(), "use_count": 0,
+           "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.presets.insert_one(doc.copy())
+    doc.pop("_id", None)
+    return doc
+
+@api_router.delete("/presets/{preset_id}")
+async def delete_preset(preset_id: str):
+    result = await db.presets.delete_one({"id": preset_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    return {"deleted": True}
+
+@api_router.post("/presets/{preset_id}/log")
+async def log_preset(preset_id: str, input: PresetLog):
+    if input.segment not in {"Breakfast", "Lunch", "Dinner", "Snacks"}:
+        raise HTTPException(status_code=400, detail="Invalid meal segment")
+    preset = await db.presets.find_one({"id": preset_id}, {"_id": 0})
+    if not preset:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    meal = {
+        "id": str(uuid.uuid4()),
+        "meal_text": preset["meal_text"],
+        "segment": input.segment,
+        "date": input.date,
+        "calories": preset["calories"],
+        "protein": preset["protein"],
+        "carbs": preset["carbs"],
+        "fibre": preset["fibre"],
+        "fats": preset["fats"],
+        "confidence": preset.get("confidence"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.meals.insert_one(meal.copy())
+    await db.presets.update_one({"id": preset_id}, {"$inc": {"use_count": 1}})
+    meal.pop("_id", None)
+    return meal
+
+@api_router.get("/export/meals.csv")
+async def export_meals_csv(start: str, end: str):
+    meals = await db.meals.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).sort([("date", 1), ("created_at", 1)]).to_list(5000)
+    activity = await db.activity.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(5000)
+    steps_by_date = {a["date"]: a.get("steps", 0) for a in activity}
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["Date", "Segment", "Meal", "Calories", "Protein (g)", "Carbs (g)", "Fibre (g)", "Fats (g)", "Steps"])
+    for m in meals:
+        writer.writerow([
+            m.get("date", ""),
+            m.get("segment", ""),
+            m.get("meal_text", ""),
+            round(float(m.get("calories", 0))),
+            round(float(m.get("protein", 0)), 1),
+            round(float(m.get("carbs", 0)), 1),
+            round(float(m.get("fibre", 0)), 1),
+            round(float(m.get("fats", 0)), 1),
+            steps_by_date.get(m.get("date", ""), ""),
+        ])
+    buffer.seek(0)
+    filename = f"ajx90_{start}_to_{end}.csv"
+    return StreamingResponse(iter([buffer.getvalue()]), media_type="text/csv",
+                             headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):

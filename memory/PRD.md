@@ -29,6 +29,8 @@ The user tracks calories and macros in Excel by meal segment and manually asks C
 - Added persistent current-weight settings and date-based step activity logs.
 - Added walking burn, daily burn, calorie deficit, and estimated weight-change calculations using 2,000 kcal baseline and 7,700 kcal per kg.
 - Completed historical import from Apple Numbers file. All 5 previously-failed rows backfilled (safe float cast on confidence). DB now holds 63 meals across 14 tracked days.
+- Meal presets: save any AI-estimated meal as a preset, then one-tap log it to any segment on any date. Endpoints: `POST /api/presets`, `GET /api/presets`, `DELETE /api/presets/{id}`, `POST /api/presets/{id}/log`.
+- CSV export: date-range export via `GET /api/export/meals.csv?start&end` returns one row per meal with calories, macros, and daily steps.
 
 ## Prioritized backlog
 - P0: user-specific accounts and private logs.
