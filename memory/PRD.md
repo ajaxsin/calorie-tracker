@@ -37,6 +37,7 @@ The user tracks calories and macros in Excel by meal segment and manually asks C
 - Preset nicknames: `PresetCreate.name` (max 60) and `PATCH /api/presets/{id}` for rename. UI shows nickname as card title with meal text as subtitle; inline rename on click, Enter/blur to commit, Escape to cancel.
 - Calorie deficit page: new `/deficit` route + `GET /api/deficit/monthly?year&month` endpoint. Uses current weight × steps × 0.0005 walking burn and 2000 kcal baseline. Shows a hero card (net deficit / est weight change), 6 stat tiles, intake-vs-burn bars, and a cumulative-deficit area chart with daily deficit overlay.
 - Mobile-friendly layout: sidebar collapses into a sticky horizontal chip nav on ≤600px, single-column stats/stat-tiles/chart cards, full-width action buttons, and stacked meal-entry footer so the app works cleanly on 375–414px phones.
+- Auto-jump-to-today on entry: focusing the meal input, saving a meal, or one-tap logging a preset always writes to today's date and snaps the selected date back to today; browser tab focus + visibilitychange also refresh the date so an overnight-open app doesn't get stuck on yesterday.
 
 ## Prioritized backlog
 - P0: user-specific accounts and private logs.

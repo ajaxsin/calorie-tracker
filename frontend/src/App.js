@@ -67,13 +67,21 @@ const Home = () => {
   const [renameValue, setRenameValue] = useState("");
   const [showExport, setShowExport] = useState(false);
   const dateKey = format(date, "yyyy-MM-dd");
+  const todayKey = () => format(new Date(), "yyyy-MM-dd");
+  const jumpToToday = () => { if (dateKey !== todayKey()) setDate(new Date()); };
   const totals = useMemo(() => meals.reduce((sum, meal) => Object.keys(blank).reduce((s, key) => ({ ...s, [key]: s[key] + Number(meal[key] || 0) }), sum), { ...blank }), [meals]);
   const loadMeals = async () => { try { const [mealRes, activityRes, settingsRes] = await Promise.all([axios.get(`${API}/meals`, { params: { date: dateKey } }), axios.get(`${API}/activity`, { params: { date: dateKey } }), axios.get(`${API}/settings`)]); setMeals(mealRes.data); setSteps(activityRes.data.steps || 0); if (settingsRes.data.weight_kg) setWeight(settingsRes.data.weight_kg); } catch { setError("Could not load your saved meals."); } };
   const loadPresets = async () => { try { const res = await axios.get(`${API}/presets`); setPresets(res.data); } catch { /* silent */ } };
   useEffect(() => { loadMeals(); setEstimate(null); }, [dateKey]);
   useEffect(() => { loadPresets(); }, []);
+  useEffect(() => {
+    const onFocus = () => { if (format(date, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd")) setDate(new Date()); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => { window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
+  }, [date]);
   const calculate = async () => { if (!text.trim()) return; setLoading(true); setError(""); try { const res = await axios.post(`${API}/nutrition/estimate`, { meal_text: text }); setEstimate(res.data); } catch (e) { setError(e.response?.data?.detail || "Could not calculate this meal."); } finally { setLoading(false); } };
-  const saveMeal = async () => { if (!estimate) return; setSaving(true); setError(""); try { await axios.post(`${API}/meals`, { meal_text: text, segment, date: dateKey, ...estimate }); setText(""); setEstimate(null); await loadMeals(); } catch (e) { setError(e.response?.data?.detail || "Could not save this meal."); } finally { setSaving(false); } };
+  const saveMeal = async () => { if (!estimate) return; setSaving(true); setError(""); const target = todayKey(); try { await axios.post(`${API}/meals`, { meal_text: text, segment, date: target, ...estimate }); setText(""); setEstimate(null); if (dateKey !== target) setDate(new Date()); else await loadMeals(); } catch (e) { setError(e.response?.data?.detail || "Could not save this meal."); } finally { setSaving(false); } };
   const removeMeal = async (id) => { await axios.delete(`${API}/meals/${id}`); setMeals((items) => items.filter((meal) => meal.id !== id)); };
   const saveWalking = async () => { if (!weight || Number(weight) <= 0) { setError("Add your current weight first."); return; } try { await Promise.all([axios.put(`${API}/settings`, { weight_kg: Number(weight) }), axios.put(`${API}/activity`, { date: dateKey, steps: Number(steps) || 0 })]); setWeightSaved(true); setTimeout(() => setWeightSaved(false), 1800); } catch { setError("Could not save your walking details."); } };
   const saveAsPreset = async () => {
@@ -102,9 +110,10 @@ const Home = () => {
   };
   const logPreset = async (presetId, targetSegment) => {
     setError("");
+    const target = todayKey();
     try {
-      await axios.post(`${API}/presets/${presetId}/log`, { date: dateKey, segment: targetSegment });
-      await Promise.all([loadMeals(), loadPresets()]);
+      await axios.post(`${API}/presets/${presetId}/log`, { date: target, segment: targetSegment });
+      if (dateKey !== target) setDate(new Date()); else await Promise.all([loadMeals(), loadPresets()]);
     } catch (e) {
       setError(e.response?.data?.detail || "Could not log preset.");
     }
@@ -139,7 +148,7 @@ const Home = () => {
             <h2>What did you eat?</h2>
             <p>Tell us about one meal in your own words. We’ll estimate the rest.</p>
             <div className="entry-box">
-              <textarea data-testid="meal-description-input" value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. 140g air fried chicken + 100g boiled black chana + salad" />
+              <textarea data-testid="meal-description-input" value={text} onFocus={jumpToToday} onChange={(e) => setText(e.target.value)} placeholder="e.g. 140g air fried chicken + 100g boiled black chana + salad" />
               <div className="entry-footer">
                 <div className="segment-select"><span>Meal</span><select data-testid="meal-segment-select" value={segment} onChange={(e) => setSegment(e.target.value)}>{segments.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={15} /></div>
                 <button className="calculate" data-testid="calculate-nutrition-button" onClick={calculate} disabled={loading || !text.trim()}>{loading ? <Loader2 className="spin" size={17} /> : <Sparkles size={17} />} {loading ? "Estimating..." : "Calculate nutrition"}</button>
