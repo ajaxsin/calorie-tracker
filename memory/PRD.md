@@ -35,6 +35,7 @@ The user tracks calories and macros in Excel by meal segment and manually asks C
 - Meal history page: month picker, stat cards (tracked days, avg calories, avg steps, total meals), stacked macro bar chart + calorie chart (recharts) with Macros/Calories toggle, and day-by-day cards showing all four segments with per-meal calories.
 - New endpoint: `GET /api/summary/monthly?year&month` returns 31-day array with rolled-up macros, steps, and segment-grouped meals.
 - Preset nicknames: `PresetCreate.name` (max 60) and `PATCH /api/presets/{id}` for rename. UI shows nickname as card title with meal text as subtitle; inline rename on click, Enter/blur to commit, Escape to cancel.
+- Calorie deficit page: new `/deficit` route + `GET /api/deficit/monthly?year&month` endpoint. Uses current weight × steps × 0.0005 walking burn and 2000 kcal baseline. Shows a hero card (net deficit / est weight change), 6 stat tiles, intake-vs-burn bars, and a cumulative-deficit area chart with daily deficit overlay.
 
 ## Prioritized backlog
 - P0: user-specific accounts and private logs.

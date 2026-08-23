@@ -207,6 +207,67 @@ async def log_preset(preset_id: str, input: PresetLog):
     meal.pop("_id", None)
     return meal
 
+@api_router.get("/deficit/monthly")
+async def deficit_monthly(year: int, month: int):
+    from calendar import monthrange
+    if month < 1 or month > 12:
+        raise HTTPException(status_code=400, detail="Invalid month")
+    _, days = monthrange(year, month)
+    start = f"{year:04d}-{month:02d}-01"
+    end = f"{year:04d}-{month:02d}-{days:02d}"
+    settings = await db.settings.find_one({"id": "default"}, {"_id": 0}) or {}
+    weight = float(settings.get("weight_kg") or 0)
+    baseline = 2000.0
+    kcal_per_kg = 7700.0
+    meals = await db.meals.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0, "date": 1, "calories": 1}).to_list(5000)
+    activity = await db.activity.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(5000)
+    steps_by_date = {a["date"]: int(a.get("steps") or 0) for a in activity}
+    intake_by_date: dict = {}
+    for m in meals:
+        intake_by_date[m["date"]] = intake_by_date.get(m["date"], 0.0) + float(m.get("calories", 0) or 0)
+    entries = []
+    cumulative = 0.0
+    total_intake = 0.0
+    total_burn = 0.0
+    tracked_days = 0
+    for d in range(1, days + 1):
+        key = f"{year:04d}-{month:02d}-{d:02d}"
+        steps = steps_by_date.get(key, 0)
+        intake = intake_by_date.get(key, 0.0)
+        walking_burn = round(steps * weight * 0.0005) if weight else 0
+        burn = baseline + walking_burn
+        deficit = burn - intake if intake > 0 else 0
+        if intake > 0:
+            cumulative += deficit
+            total_intake += intake
+            total_burn += burn
+            tracked_days += 1
+        entries.append({
+            "date": key,
+            "day": d,
+            "intake": round(intake),
+            "walking_burn": walking_burn,
+            "burn": round(burn),
+            "deficit": round(deficit),
+            "cumulative_deficit": round(cumulative),
+            "steps": steps,
+            "tracked": intake > 0,
+        })
+    net_deficit = round(cumulative)
+    return {
+        "year": year,
+        "month": month,
+        "weight_kg": weight or None,
+        "baseline": baseline,
+        "kcal_per_kg": kcal_per_kg,
+        "tracked_days": tracked_days,
+        "total_intake": round(total_intake),
+        "total_burn": round(total_burn),
+        "net_deficit": net_deficit,
+        "estimated_weight_change_kg": round(net_deficit / kcal_per_kg, 2),
+        "days": entries,
+    }
+
 @api_router.get("/export/meals.csv")
 async def export_meals_csv(start: str, end: str):
     meals = await db.meals.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).sort([("date", 1), ("created_at", 1)]).to_list(5000)

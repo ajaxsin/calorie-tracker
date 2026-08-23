@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Bookmark, BookmarkPlus, Check, ChevronDown, Down
 import { format, addDays, subDays } from "date-fns";
 import Sidebar from "@/components/Sidebar";
 import History from "@/pages/History";
+import Deficit from "@/pages/Deficit";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -264,6 +265,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/history" element={<History />} />
+        <Route path="/deficit" element={<Deficit />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CircleHelp, Flame, Leaf, Sparkles, Utensils } from "lucide-react";
+import { CircleHelp, Flame, Leaf, Scale, Sparkles, Utensils } from "lucide-react";
 
 const Sidebar = () => (
   <aside className="sidebar">
@@ -7,6 +7,7 @@ const Sidebar = () => (
     <nav>
       <NavLink to="/" end className={({ isActive }) => isActive ? "nav-active" : ""} data-testid="dashboard-navigation"><Utensils size={18} />Daily dashboard</NavLink>
       <NavLink to="/history" className={({ isActive }) => isActive ? "nav-active" : ""} data-testid="history-navigation"><Flame size={18} />Meal history</NavLink>
+      <NavLink to="/deficit" className={({ isActive }) => isActive ? "nav-active" : ""} data-testid="deficit-navigation"><Scale size={18} />Calorie deficit</NavLink>
     </nav>
     <div className="side-note"><div className="note-icon"><Sparkles size={16} /></div><p><strong>Good food, clear data.</strong><br />Paste what you ate and let your day take shape.</p></div>
     <div className="help"><CircleHelp size={16} />Nutrition estimates are a guide</div>
