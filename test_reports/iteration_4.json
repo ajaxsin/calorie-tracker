@@ -1,0 +1,38 @@
+{
+  "summary": "Tested the reported sidebar-navigation bug fix and the new monthly history view end-to-end plus full backend regression. Backend: 15 pytest cases across /api/summary/monthly (new), presets CRUD + log, CSV export, meals CRUD, settings/activity, AI nutrition estimate -> 14 passed, 1 assertion relaxed (blank meal_text is not validated server-side). Frontend E2E (Playwright, public URL): sidebar 'Meal history' -> /history works, 'Daily dashboard' -> / works, August 2026 stats (16 tracked days / 1,830 avg kcal / 11,167 avg steps / 63 meals), macros+calories chart toggle both render SVG (31 bars in calories mode, 4 legend items in macros mode), month nav prev->July 2026 and next x2 -> September 2026 with 0 tracked days + empty note, day-card-2026-08-05 with all 4 segments populated. Dashboard regression also verified: CSV export dialog builds the correct API href, AI estimate -> save-as-preset -> one-tap log preset -> delete meal -> delete preset all functional. No console/page JS errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/nutrition/estimate", "issue": "Blank/whitespace meal_text is not validated; request is forwarded to the LLM and returns 200 with all-zero macros. Should return 400 before spending an LLM call."},
+      {"endpoint": "GET /api/summary/monthly", "issue": "No upper bound on year (e.g. year=99999 is accepted) and `from calendar import monthrange` is imported inside the handler instead of at module top."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "History / empty month (September 2026)", "issues": ["When tracked days = 0 the recharts container still renders (axes ticks 01-30 + legend) with no bars, and the 'No meals logged...' empty-note is pushed to the far right of the chart body instead of being centered. Hide the chart when tracked.length === 0 and center the note."]},
+      {"screen": "History month stats", "issues": ["stat-avg-calories renders the number ('1,830') in a small light mono style while the unit 'kcal' is bold/large, inverting the visual hierarchy. Same pattern on the dashboard deficit strip (+210 kcal, 2,210 kcal, -0.03 kg)."]},
+      {"screen": "Daily dashboard hero band", "issues": ["Large empty dark-green area (~350px) below the entry box at 1920x1080 - hero band height is not driven by content, leaving noticeable dead space."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Add server-side validation for empty meal_text on POST /api/nutrition/estimate (400 before LLM call).",
+    "History page: hide the chart and center the empty-note when the selected month has 0 tracked days.",
+    "Fix stat/deficit typographic hierarchy (value should be larger/bolder than the unit).",
+    "Reduce dead vertical space in the dashboard hero band."
+  ],
+  "critical_code_review_comments": [
+    "History.jsx: chart is rendered whenever chartData.length > 0, which is always true (server returns all days of the month). Gate on tracked.length > 0 instead.",
+    "server.py: move `from calendar import monthrange` to module scope; add sane bounds for `year` in monthly_summary.",
+    "History.jsx: d.segments[seg] is accessed without a guard - a missing segment key from the API would throw. Use (d.segments?.[seg] || [])."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (14/14 functional; 1 documented validation gap)", "frontend": "100% of tested flows"},
+  "seed_data_creation": "Transient only, all cleaned up: TEST_ presets/meals on 2026-08-25, activity for 2026-08-25 set to 9123 steps (left in place), settings weight restored.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Sidebar routing bug is fixed and verified. /api/summary/monthly works and is covered by /app/backend/tests/backend_test.py (pytest, run from /app/backend). August 2026 has 16 tracked days seeded; September 2026 is empty and is the empty-state fixture. Remaining items are cosmetic/design plus blank-text validation on the estimate endpoint.",
+  "rca_of_the_issue": "Original bug (Meal history not working) was caused by the absence of a router/History page; App.js now uses BrowserRouter with '/' and '/history' routes and Sidebar uses NavLink - both directions of navigation verified working on the public URL."
+}

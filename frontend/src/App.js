@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import "@/App.css";
 import axios from "axios";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkPlus, Check, ChevronDown, CircleHelp, Download, Footprints, Flame, Leaf, Loader2, Plus, Settings, Sparkles, Trash2, Utensils, X } from "lucide-react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkPlus, Check, ChevronDown, Download, Footprints, Loader2, Plus, Settings, Sparkles, Trash2, Utensils, X } from "lucide-react";
 import { format, addDays, subDays } from "date-fns";
+import Sidebar from "@/components/Sidebar";
+import History from "@/pages/History";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -101,15 +104,7 @@ const Home = () => {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
-        <div className="brand"><span className="brand-mark"><Leaf size={18} /></span><span>AJX90<span className="brand-dot">.</span></span></div>
-        <nav>
-          <button className="nav-active" data-testid="dashboard-navigation"><Utensils size={18} />Daily dashboard</button>
-          <button data-testid="history-navigation"><Flame size={18} />Meal history</button>
-        </nav>
-        <div className="side-note"><div className="note-icon"><Sparkles size={16} /></div><p><strong>Good food, clear data.</strong><br />Paste what you ate and let your day take shape.</p></div>
-        <div className="help"><CircleHelp size={16} />Nutrition estimates are a guide</div>
-      </aside>
+      <Sidebar />
       <main className="main">
         <header className="topbar">
           <div><p className="eyebrow">YOUR NUTRITION, SIMPLIFIED</p><h1>Daily dashboard</h1></div>
@@ -229,7 +224,14 @@ const Home = () => {
 };
 
 function App() {
-  return <Home />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/history" element={<History />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

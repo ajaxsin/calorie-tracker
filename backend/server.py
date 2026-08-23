@@ -221,6 +221,36 @@ async def export_meals_csv(start: str, end: str):
     return StreamingResponse(iter([buffer.getvalue()]), media_type="text/csv",
                              headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
+@api_router.get("/summary/monthly")
+async def monthly_summary(year: int, month: int):
+    from calendar import monthrange
+    if month < 1 or month > 12:
+        raise HTTPException(status_code=400, detail="Invalid month")
+    _, days = monthrange(year, month)
+    start = f"{year:04d}-{month:02d}-01"
+    end = f"{year:04d}-{month:02d}-{days:02d}"
+    meals = await db.meals.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).sort([("date", 1), ("created_at", 1)]).to_list(5000)
+    activity = await db.activity.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(5000)
+    steps_by_date = {a["date"]: a.get("steps", 0) for a in activity}
+    by_day = {}
+    for d in range(1, days + 1):
+        key = f"{year:04d}-{month:02d}-{d:02d}"
+        by_day[key] = {"date": key, "day": d, "calories": 0, "protein": 0, "carbs": 0, "fibre": 0, "fats": 0,
+                        "steps": steps_by_date.get(key, 0), "segments": {"Breakfast": [], "Lunch": [], "Dinner": [], "Snacks": []}}
+    for m in meals:
+        entry = by_day.get(m["date"])
+        if not entry:
+            continue
+        entry["calories"] += float(m.get("calories", 0) or 0)
+        entry["protein"] += float(m.get("protein", 0) or 0)
+        entry["carbs"] += float(m.get("carbs", 0) or 0)
+        entry["fibre"] += float(m.get("fibre", 0) or 0)
+        entry["fats"] += float(m.get("fats", 0) or 0)
+        seg = m.get("segment")
+        if seg in entry["segments"]:
+            entry["segments"][seg].append({"id": m.get("id"), "meal_text": m.get("meal_text"), "calories": float(m.get("calories", 0) or 0)})
+    return {"year": year, "month": month, "days": [by_day[k] for k in sorted(by_day.keys())]}
+
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
     status_dict = input.model_dump()

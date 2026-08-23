@@ -31,6 +31,9 @@ The user tracks calories and macros in Excel by meal segment and manually asks C
 - Completed historical import from Apple Numbers file. All 5 previously-failed rows backfilled (safe float cast on confidence). DB now holds 63 meals across 14 tracked days.
 - Meal presets: save any AI-estimated meal as a preset, then one-tap log it to any segment on any date. Endpoints: `POST /api/presets`, `GET /api/presets`, `DELETE /api/presets/{id}`, `POST /api/presets/{id}/log`.
 - CSV export: date-range export via `GET /api/export/meals.csv?start&end` returns one row per meal with calories, macros, and daily steps.
+- Router-based navigation: `/` (dashboard) and `/history` routes wired via `BrowserRouter`; extracted `Sidebar` uses `NavLink` for active state.
+- Meal history page: month picker, stat cards (tracked days, avg calories, avg steps, total meals), stacked macro bar chart + calorie chart (recharts) with Macros/Calories toggle, and day-by-day cards showing all four segments with per-meal calories.
+- New endpoint: `GET /api/summary/monthly?year&month` returns 31-day array with rolled-up macros, steps, and segment-grouped meals.
 
 ## Prioritized backlog
 - P0: user-specific accounts and private logs.
