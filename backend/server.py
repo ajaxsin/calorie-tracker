@@ -74,7 +74,7 @@ async def estimate_nutrition(input: EstimateRequest):
     key = os.environ.get("EMERGENT_LLM_KEY")
     if not key:
         raise HTTPException(status_code=503, detail="Nutrition AI is not configured")
-    system = """You estimate nutrition for one meal. Return ONLY valid JSON with keys calories, protein, carbs, fibre, fats, confidence, note. Use numeric values in kcal and grams. Make reasonable standard-portion assumptions, be conservative, and mention assumptions briefly in note. No markdown."""
+    system = """You estimate nutrition for one meal and must avoid undercounting. Parse every ingredient and quantity, account for edible cooked weights, cooking oil, sauces, marinades, nuts, and dressings. If oil or preparation details are missing, state the assumption and use a realistic standard amount rather than zero. Cross-check calories against macros (protein*4 + carbs*4 + fibre*2 + fats*9), then choose the more realistic/higher result when uncertain. Return ONLY valid JSON with keys calories, protein, carbs, fibre, fats, confidence, note, and breakdown. breakdown must be an array of objects with item, calories, protein, carbs, fibre, fats. Use numeric values in kcal and grams. No markdown."""
     prompt = f"Estimate this meal: {input.meal_text}"
     chat = LlmChat(api_key=key, session_id=f"nutrition-{uuid.uuid4()}", system_message=system).with_model("openai", "gpt-5.4")
     raw = ""

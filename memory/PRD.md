@@ -28,6 +28,7 @@ The user tracks calories and macros in Excel by meal segment and manually asks C
 - Live integration and API regression tests passing.
 - Added persistent current-weight settings and date-based step activity logs.
 - Added walking burn, daily burn, calorie deficit, and estimated weight-change calculations using 2,000 kcal baseline and 7,700 kcal per kg.
+- Completed historical import from Apple Numbers file. All 5 previously-failed rows backfilled (safe float cast on confidence). DB now holds 63 meals across 14 tracked days.
 
 ## Prioritized backlog
 - P0: user-specific accounts and private logs.
