@@ -1,0 +1,27 @@
+{
+  "app_name": "NutriPaste AI - Smart Calorie & Macro Tracker",
+  "context": "dashboard",
+  "archetype": "ORGANIC & EARTHY",
+  "typography": {
+    "headings": "Outfit, sans-serif",
+    "body": "Inter, sans-serif"
+  },
+  "colors": {
+    "primary": "#2D6A4F",
+    "primary_hover": "#1B4332",
+    "background": "#F8F9FA",
+    "surface": "#FFFFFF",
+    "border": "#E9ECEF",
+    "text_main": "#212529",
+    "text_muted": "#6C757D",
+    "accent": "#D8F3DC",
+    "success": "#40916C",
+    "warning": "#D4A373",
+    "danger": "#E07A5F"
+  },
+  "image_urls": {
+    "hero_meal": "https://images.unsplash.com/photo-1761315600943-d8a5bb0c499f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwyfHxoZWFsdGh5JTIwZm9vZCUyMHNhbGFkJTIwY2hpY2tlbiUyMGJvd2x8ZW58MHx8fHwxNzg3NTAyNDk0fDA&ixlib=rb-4.1.0&q=85",
+    "salad_bowl": "https://images.unsplash.com/photo-1574926054530-540288c8e678?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwZm9vZCUyMHNhbGFkJTIwY2hpY2tlbiUyMGJvd2x8ZW58MHx8fHwxNzg3NTAyNDkzfDA&ixlib=rb-4.1.0&q=85"
+  },
+  "instructions_to_main_agent": "Build a React + FastAPI calorie & macro tracker dashboard. The user pastes natural language meal text (e.g. '140 Gram Boneless Air Fried Chicken + 100 Grams Boiled Black Chana + 7 Gram Peanuts + Onion/Tomato/Cucumber Salad'), selects a segment (Breakfast, Lunch, Dinner, Snacks), and clicks 'Calculate with GPT-5.4'. The backend calls OpenAI GPT-5.4 with strict JSON output parsing for calories, protein, carbs, fibre, and fats. The user can review, edit if needed, and save to the daily tracker. Features include date navigation, daily macro progress bars (Calories, Protein, Carbs, Fibre, Fats), meal history per segment, quick templates/presets based on user's examples, delete saved meals, and export/excel-like view."
+}
