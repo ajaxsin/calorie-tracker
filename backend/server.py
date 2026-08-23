@@ -68,7 +68,7 @@ class ActivityInput(BaseModel):
     steps: int = Field(ge=0, le=200000)
 
 class PresetCreate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=60)
     meal_text: str = Field(min_length=3, max_length=2000)
     calories: float = Field(ge=0)
     protein: float = Field(ge=0)
@@ -80,6 +80,9 @@ class PresetCreate(BaseModel):
 class PresetLog(BaseModel):
     date: str
     segment: str
+
+class PresetRename(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=60)
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
@@ -170,6 +173,14 @@ async def delete_preset(preset_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Preset not found")
     return {"deleted": True}
+
+@api_router.patch("/presets/{preset_id}")
+async def rename_preset(preset_id: str, input: PresetRename):
+    name = (input.name or "").strip() or None
+    result = await db.presets.update_one({"id": preset_id}, {"$set": {"name": name}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    return {"id": preset_id, "name": name}
 
 @api_router.post("/presets/{preset_id}/log")
 async def log_preset(preset_id: str, input: PresetLog):

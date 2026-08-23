@@ -1,0 +1,36 @@
+{
+  "summary": "Tested the new preset nickname/rename feature (backend + frontend E2E). Backend: 28/29 pytest tests passed across /app/backend/tests (new test_preset_names.py with 14 cases + existing regression suite). POST /api/presets stores optional name; PATCH /api/presets/{id} renames, trims whitespace, clears on ''/null/empty-body, returns 404 for unknown id and 422 for >60 chars or wrong type; macros/meal_text preserved on rename. Regressions (DELETE preset, POST preset log, GET /api/summary/monthly?2026-08, GET /api/export/meals.csv) all pass. Frontend E2E on the public preview URL: calculate nutrition -> estimate card -> preset-name-input (placeholder 'Optional nickname', maxlength 60) next to save-preset-button; saving POSTs {name:...} and the new card shows the nickname prominently; nameless preset shows 'Add nickname' placeholder; clicking rename-preset-{id}-button switches to rename-preset-{id}-input; Enter and blur both PATCH and re-render the card; Escape correctly cancels without a PATCH; log-preset-{id}-lunch increments the day's meal count; delete-preset-{id} removes the card. All test presets/meals created during E2E were deleted at the end (dashboard left clean).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/presets", "issue": "PresetCreate.name has no max_length constraint (a 61+ char nickname is accepted and stored), while PresetRename.name enforces max_length=60 and the UI enforces maxLength=60. Add Field(default=None, max_length=60) to PresetCreate.name for consistency."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Preset card title (.preset-title-muted)", "issues": ["'Add nickname' placeholder uses #a4b0a8 on white (~2.2:1 contrast) — below WCAG AA for text; consider a slightly darker muted tone."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_preset_names.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results_iteration5.xml"
+  ],
+  "action_items": [
+    "Optional: add max_length=60 to PresetCreate.name so the create path matches the rename path validation.",
+    "Optional: darken .preset-title-muted color for contrast."
+  ],
+  "critical_code_review_comments": [
+    "commitRename is wired to both onKeyDown Enter and onBlur; Enter triggers a PATCH and then the input unmounts, so no duplicate PATCH was observed in testing (verified). Escape path is safe because cancelRename unmounts the input before blur handling. No change required, but a guard flag would make the intent explicit.",
+    "saveAsPreset allows creating duplicate presets from the same estimate (clicking 'Save preset' twice creates two identical cards). Pre-existing behaviour, not part of this change, but worth a dedupe/disable-after-save guard."
+  ],
+  "updated_files": ["/app/backend/tests/test_preset_names.py"],
+  "success_rate": {"backend": "97% (28/29)", "frontend": "100% (all nickname/rename/log/delete flows)"},
+  "seed_data_creation": "Temporary presets 'TESTQA Post-workout combo' / renamed ones and TEST_ prefixed presets+meals; all deleted by pytest fixtures and the E2E cleanup step.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Nickname/rename feature is fully working (backend PATCH + UI inline rename). Only open item is missing max_length=60 on PresetCreate.name (test_preset_names.py::test_create_name_too_long_rejected_or_accepted will pass once fixed). Preset E2E requires waiting up to 120s for the GPT-5.4 estimate before the estimate card and preset-name-input appear.",
+  "rca_of_the_issue": "PresetCreate declares name as plain Optional[str] without Field(max_length=60), so server-side length validation is only present on the rename model; the UI-only maxLength attribute can be bypassed by direct API calls."
+}

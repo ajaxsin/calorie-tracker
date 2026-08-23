@@ -61,6 +61,9 @@ const Home = () => {
   const [weightSaved, setWeightSaved] = useState(false);
   const [presets, setPresets] = useState([]);
   const [presetSaved, setPresetSaved] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [renaming, setRenaming] = useState(null); // presetId currently being renamed
+  const [renameValue, setRenameValue] = useState("");
   const [showExport, setShowExport] = useState(false);
   const dateKey = format(date, "yyyy-MM-dd");
   const totals = useMemo(() => meals.reduce((sum, meal) => Object.keys(blank).reduce((s, key) => ({ ...s, [key]: s[key] + Number(meal[key] || 0) }), sum), { ...blank }), [meals]);
@@ -76,12 +79,24 @@ const Home = () => {
     if (!estimate || !text.trim()) return;
     setError("");
     try {
-      await axios.post(`${API}/presets`, { meal_text: text, ...estimate });
+      await axios.post(`${API}/presets`, { name: presetName.trim() || null, meal_text: text, ...estimate });
       setPresetSaved(true);
+      setPresetName("");
       setTimeout(() => setPresetSaved(false), 1800);
       await loadPresets();
     } catch (e) {
       setError(e.response?.data?.detail || "Could not save preset.");
+    }
+  };
+  const startRename = (preset) => { setRenaming(preset.id); setRenameValue(preset.name || ""); };
+  const cancelRename = () => { setRenaming(null); setRenameValue(""); };
+  const commitRename = async (presetId) => {
+    try {
+      await axios.patch(`${API}/presets/${presetId}`, { name: renameValue.trim() || null });
+      setRenaming(null); setRenameValue("");
+      await loadPresets();
+    } catch (e) {
+      setError(e.response?.data?.detail || "Could not rename preset.");
     }
   };
   const logPreset = async (presetId, targetSegment) => {
@@ -143,9 +158,26 @@ const Home = () => {
                 <div className="preset-card" key={p.id} data-testid={`preset-${p.id}`}>
                   <div className="preset-head">
                     <Bookmark size={14} />
-                    <span className="preset-text" title={p.meal_text}>{p.meal_text}</span>
+                    {renaming === p.id ? (
+                      <input
+                        className="preset-rename-input"
+                        data-testid={`rename-preset-${p.id}-input`}
+                        value={renameValue}
+                        maxLength={60}
+                        autoFocus
+                        placeholder="Give it a nickname"
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") commitRename(p.id); if (e.key === "Escape") cancelRename(); }}
+                        onBlur={() => commitRename(p.id)}
+                      />
+                    ) : (
+                      <button className="preset-title" data-testid={`rename-preset-${p.id}-button`} onClick={() => startRename(p)} title="Rename">
+                        {p.name || <span className="preset-title-muted">Add nickname</span>}
+                      </button>
+                    )}
                     <button className="preset-remove" data-testid={`delete-preset-${p.id}`} onClick={() => removePreset(p.id)} aria-label="Delete preset"><Trash2 size={13} /></button>
                   </div>
+                  <p className="preset-text" title={p.meal_text}>{p.meal_text}</p>
                   <div className="preset-macros">
                     <strong>{Math.round(p.calories)} kcal</strong>
                     <span>P {Math.round(p.protein)}g · C {Math.round(p.carbs)}g · F {Math.round(p.fats)}g</span>
@@ -178,7 +210,10 @@ const Home = () => {
             </div>
             <div className="estimate-actions">
               <button className="save" data-testid="save-meal-button" onClick={saveMeal} disabled={saving}><Check size={17} /> {saving ? "Saving..." : "Save to today"}</button>
-              <button className="save-secondary" data-testid="save-preset-button" onClick={saveAsPreset}>{presetSaved ? <Check size={15} /> : <BookmarkPlus size={15} />} {presetSaved ? "Saved" : "Save as preset"}</button>
+              <div className="preset-save-row">
+                <input className="preset-name-input" data-testid="preset-name-input" type="text" maxLength={60} placeholder="Optional nickname" value={presetName} onChange={(e) => setPresetName(e.target.value)} />
+                <button className="save-secondary" data-testid="save-preset-button" onClick={saveAsPreset}>{presetSaved ? <Check size={15} /> : <BookmarkPlus size={15} />} {presetSaved ? "Saved" : "Save preset"}</button>
+              </div>
             </div>
           </section>
         )}

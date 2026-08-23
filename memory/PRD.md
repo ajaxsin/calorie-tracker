@@ -34,6 +34,7 @@ The user tracks calories and macros in Excel by meal segment and manually asks C
 - Router-based navigation: `/` (dashboard) and `/history` routes wired via `BrowserRouter`; extracted `Sidebar` uses `NavLink` for active state.
 - Meal history page: month picker, stat cards (tracked days, avg calories, avg steps, total meals), stacked macro bar chart + calorie chart (recharts) with Macros/Calories toggle, and day-by-day cards showing all four segments with per-meal calories.
 - New endpoint: `GET /api/summary/monthly?year&month` returns 31-day array with rolled-up macros, steps, and segment-grouped meals.
+- Preset nicknames: `PresetCreate.name` (max 60) and `PATCH /api/presets/{id}` for rename. UI shows nickname as card title with meal text as subtitle; inline rename on click, Enter/blur to commit, Escape to cancel.
 
 ## Prioritized backlog
 - P0: user-specific accounts and private logs.
