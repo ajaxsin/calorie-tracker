@@ -1,4 +1,4 @@
-# NutriPaste AI — Product Requirements
+# AJX90 — Product Requirements
 
 ## Original problem statement
 The user tracks calories and macros in Excel by meal segment and manually asks ChatGPT to estimate nutrition. They want to paste a natural-language meal once and have calories, protein, carbs, fibre, and fats calculated and tracked daily across Breakfast, Lunch, Dinner, and Snacks.
