@@ -57,6 +57,13 @@ class MealOut(MealCreate):
     id: str
     created_at: str
 
+class SettingsInput(BaseModel):
+    weight_kg: float = Field(gt=0, lt=500)
+
+class ActivityInput(BaseModel):
+    date: str
+    steps: int = Field(ge=0, le=200000)
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
@@ -105,6 +112,28 @@ async def delete_meal(meal_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Meal not found")
     return {"deleted": True}
+
+@api_router.get("/settings")
+async def get_settings():
+    settings = await db.settings.find_one({"id": "default"}, {"_id": 0})
+    return settings or {"id": "default", "weight_kg": None}
+
+@api_router.put("/settings")
+async def update_settings(input: SettingsInput):
+    settings = {"id": "default", **input.model_dump()}
+    await db.settings.replace_one({"id": "default"}, settings, upsert=True)
+    return settings
+
+@api_router.get("/activity")
+async def get_activity(date: str):
+    activity = await db.activity.find_one({"date": date}, {"_id": 0})
+    return activity or {"date": date, "steps": 0}
+
+@api_router.put("/activity")
+async def update_activity(input: ActivityInput):
+    activity = {**input.model_dump(), "updated_at": datetime.now(timezone.utc).isoformat()}
+    await db.activity.replace_one({"date": input.date}, activity, upsert=True)
+    return {"date": input.date, "steps": input.steps}
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):

@@ -26,11 +26,14 @@ The user tracks calories and macros in Excel by meal segment and manually asks C
 - Persistent meal create/list/delete endpoints.
 - Responsive NutriPaste dashboard with date navigation, four meal segments, daily balance bars, estimate review card, and mobile layout.
 - Live integration and API regression tests passing.
+- Added persistent current-weight settings and date-based step activity logs.
+- Added walking burn, daily burn, calorie deficit, and estimated weight-change calculations using 2,000 kcal baseline and 7,700 kcal per kg.
 
 ## Prioritized backlog
 - P0: user-specific accounts and private logs.
 - P1: editable daily calorie/macro targets and manual estimate corrections.
 - P1: weekly and monthly trend charts.
+- P1: configurable maintenance baseline and walking calorie formula.
 - P2: export to CSV/Excel and reusable meal presets.
 
 ## Next tasks
