@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 8: verified the confidence string->float coercion fix. 19/19 pytest backend tests passed (POST /api/meals with confidence 'medium'/'low'/'high'/'very high'/'moderate'/'unsure'/'0.75'/null/numeric all return 200 with correctly coerced float persisted; POST /api/presets with 'high' -> 0.85; nutrition estimate returns numeric confidence; presets rename+log, CSV export, summary/monthly, deficit/monthly, settings/activity regressions all pass). Full frontend E2E on the public URL: short meal ('2 eggs + 1 toast') and the user's original long meal both estimated and SAVED with no nutrition-error toast; meal-count went 1 -> 2 -> 3 and daily calories updated to 1026 kcal (long meal 524 kcal / 56.4g protein, non-zero macros). Meal-input focus regression (snap back to today) still works. Test meals/presets created were cleaned up.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Daily dashboard", "issues": ["Changing the selected day (previous-day-button) silently discards a freshly generated estimate (App.js line 75 setEstimate(null) on dateKey change), so the 'estimate ready then navigate to past day then save' path is unreachable. Not a defect for the reported bug, but the user loses an AI estimate (and 120s wait) with no warning."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_confidence_fix.py",
+    "/app/backend/tests/cleanup_iter8.py",
+    "/app/test_reports/pytest/iter8_results.xml"
+  ],
+  "action_items": [
+    "Optional: preserve (or warn about) the pending estimate when the user changes the selected date, instead of silently clearing it.",
+    "Optional cleanup: saveMeal spreads the whole estimate object (including note/breakdown) into POST /api/meals; these extras are silently dropped by Pydantic - consider sending only the persisted fields, and persisting 'note' if it has value."
+  ],
+  "critical_code_review_comments": [
+    "The confidence coercion mapping is duplicated 3x (MealCreate, PresetCreate, estimate endpoint) - extract one shared helper/AnnotatedType to keep behaviour consistent (DRY).",
+    "Other LLM numeric fields (calories/protein/etc.) are still coerced with bare float() in the estimate endpoint; if GPT returns '250 kcal' as a string with units the endpoint raises and returns a generic 502. Consider a tolerant numeric parser there too."
+  ],
+  "updated_files": ["/app/backend/tests/test_confidence_fix.py", "/app/backend/tests/cleanup_iter8.py"],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "100% of tested flows"},
+  "seed_data_creation": "Temporary TEST_ prefixed meals/presets created for pytest and E2E; all deleted via /app/backend/tests/cleanup_iter8.py. Pre-existing user meals on 2026-08-23/24 untouched.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Reported bug (422 float_parsing on confidence:'medium') is fixed and cannot be reproduced. Run 'pytest /app/backend/tests/test_confidence_fix.py' for regression; run 'python /app/backend/tests/cleanup_iter8.py' after any E2E to remove TEST_ data. Note the LLM sometimes returns numeric confidence (0.82 observed), so the string case must stay covered by the parametrized unit-level payload tests rather than relying on live LLM output.",
+  "rca_of_the_issue": "GPT-5.4 returned confidence as a string ('medium'); MealCreate/PresetCreate typed it as float causing 422 float_parsing, surfaced in UI as 'Could not save this meal.'. Fix (field_validator mode='before' + mapping, plus coercion in the estimate endpoint) verified for all string/numeric/null variants."
+}

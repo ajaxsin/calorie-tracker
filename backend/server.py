@@ -8,7 +8,7 @@ import io
 import csv
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
@@ -53,6 +53,17 @@ class MealCreate(BaseModel):
     fats: float = Field(ge=0)
     confidence: Optional[float] = None
 
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def _coerce_confidence(cls, v):
+        if v is None or isinstance(v, (int, float)):
+            return v
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            mapping = {"low": 0.3, "medium": 0.6, "med": 0.6, "moderate": 0.6, "high": 0.85, "very high": 0.95}
+            return mapping.get(str(v).strip().lower(), 0.5)
+
 class EstimateRequest(BaseModel):
     meal_text: str = Field(min_length=3, max_length=2000)
 
@@ -76,6 +87,17 @@ class PresetCreate(BaseModel):
     fibre: float = Field(ge=0)
     fats: float = Field(ge=0)
     confidence: Optional[float] = None
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def _coerce_confidence(cls, v):
+        if v is None or isinstance(v, (int, float)):
+            return v
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            mapping = {"low": 0.3, "medium": 0.6, "med": 0.6, "moderate": 0.6, "high": 0.85, "very high": 0.95}
+            return mapping.get(str(v).strip().lower(), 0.5)
 
 class PresetLog(BaseModel):
     date: str
@@ -109,7 +131,13 @@ async def estimate_nutrition(input: EstimateRequest):
         required = ["calories", "protein", "carbs", "fibre", "fats"]
         if any(key not in data for key in required):
             raise ValueError("Missing nutrition fields")
-        return {**data, "calories": round(float(data["calories"])), "protein": round(float(data["protein"]), 1), "carbs": round(float(data["carbs"]), 1), "fibre": round(float(data["fibre"]), 1), "fats": round(float(data["fats"]), 1)}
+        conf_raw = data.get("confidence")
+        try:
+            conf_val = float(conf_raw) if conf_raw is not None else None
+        except (TypeError, ValueError):
+            mapping = {"low": 0.3, "medium": 0.6, "med": 0.6, "moderate": 0.6, "high": 0.85, "very high": 0.95}
+            conf_val = mapping.get(str(conf_raw).strip().lower(), 0.5)
+        return {**data, "calories": round(float(data["calories"])), "protein": round(float(data["protein"]), 1), "carbs": round(float(data["carbs"]), 1), "fibre": round(float(data["fibre"]), 1), "fats": round(float(data["fats"]), 1), "confidence": conf_val}
     except Exception as exc:
         logger.exception("Nutrition estimate failed")
         raise HTTPException(status_code=502, detail="Could not estimate this meal. Please try again.") from exc
