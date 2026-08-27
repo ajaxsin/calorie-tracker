@@ -12,6 +12,8 @@ interface DayByDayListProps {
 export default function DayByDayList({ trackedDays }: DayByDayListProps) {
   if (!trackedDays || trackedDays.length === 0) return null;
 
+  const sortedDays = [...trackedDays].sort((a, b) => b.date.localeCompare(a.date));
+
   return (
     <section className="day-log" data-testid="day-log">
       <div className="section-heading">
@@ -20,12 +22,12 @@ export default function DayByDayList({ trackedDays }: DayByDayListProps) {
           <h3>What you ate</h3>
         </div>
         <span className="meal-count">
-          {trackedDays.length} day{trackedDays.length === 1 ? "" : "s"}
+          {sortedDays.length} day{sortedDays.length === 1 ? "" : "s"}
         </span>
       </div>
 
       <div className="day-list">
-        {trackedDays.map((d) => {
+        {sortedDays.map((d) => {
           const dt = parseISO(d.date);
           return (
             <article
