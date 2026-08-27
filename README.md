@@ -1,5 +1,6 @@
 # NutriPaste Calorie Tracker
 
+
 A full-stack nutrition tracking and deficit analysis system built with **FastAPI**, **PostgreSQL**, and **Next.js (App Router)**.
 
 ## Project Structure
